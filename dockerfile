@@ -1,6 +1,10 @@
-FROM php:8.1-apache
+# Use the official PHP 8.1 image as the base image
+FROM php:8.1-cli
 
-# Atualize as fontes do APT e instale as dependências necessárias
+# Set the working directory inside the container
+WORKDIR /var/www/html
+
+# Install system dependencies required for Laravel and PHP extensions
 RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg-dev \
@@ -9,25 +13,21 @@ RUN apt-get update && apt-get install -y \
     unzip \
     git
 
-# Instale as extensões PHP necessárias
+# Install PHP extensions required for Laravel
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install gd pdo pdo_mysql
 
-# Defina o diretório de trabalho dentro do container para o diretório principal do projeto Laravel
-WORKDIR /var/www/html/public
+# Install Composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Copie o código do seu projeto Laravel para o diretório de trabalho
+# Copy the entire Laravel project to the container's working directory
 COPY . .
 
-# Defina as permissões corretas para o servidor web
-RUN chown -R www-data:www-data /var/www/html/public
-
-# Instale as dependências do Composer
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+# Install project dependencies using Composer
 RUN composer install
 
-# Exponha a porta do servidor web do Apache
-EXPOSE 80
+# Expose the port on which Laravel serves the application (default is 8000)
+EXPOSE 8002
 
-# Comando padrão para executar o servidor web Apache
-CMD ["apache2-foreground"]
+# Command to start the development server using "php artisan serve"
+CMD ["php", "artisan", "serve", "--host", "0.0.0.0", "--port", "8002"]
